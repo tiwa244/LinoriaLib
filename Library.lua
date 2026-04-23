@@ -6292,16 +6292,11 @@ do
         
     function Library:SetNotifySide(Side)
         self.NotifySide = string.lower(Side)
-
-        local NewParent = self.NotifySide == "left"
-            and self.LeftNotificationArea
-            or self.RightNotificationArea
-
         local isLeft = self.NotifySide == "left"
 
         for _, NotifOuter in pairs(self.Notifications) do
             if NotifOuter then
-                NotifOuter.Parent = NewParent
+                NotifOuter.Parent = self.NotifySide == "left" and self.RightNotificationArea or self.LeftNotificationArea
                 local Inner = NotifOuter:FindFirstChild("NotifInner")
                 if not Inner then continue end
 
