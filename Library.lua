@@ -282,6 +282,7 @@ local Library = {
 
     -- notification --
     Notify = nil;
+    Notifications = {};
     NotifySide = "Left";
     ShowCustomCursor = true;
     ShowToggleFrameInKeybinds = true;
@@ -877,6 +878,10 @@ function Library:AddToolTip(InfoStr, DisabledInfoStr, HoverInstance)
         end))
     end
 
+    function Library:GetName()
+		return "Linoria"
+	end
+				
     function TooltipTable:Destroy()
         for Idx = #TooltipTable.Signals, 1, -1 do
             local Connection = table.remove(TooltipTable.Signals, Idx)
@@ -6285,8 +6290,39 @@ do
         Parent = Library.RightNotificationArea;
     })
         
-    function Library:SetNotifySide(Side: string)
-        Library.NotifySide = Side
+    function Library:SetNotifySide(Side)
+        self.NotifySide = string.lower(Side)
+
+        local NewParent = self.NotifySide == "left"
+            and self.LeftNotificationArea
+            or self.RightNotificationArea
+
+        local isLeft = self.NotifySide == "left"
+
+        for _, NotifOuter in pairs(self.Notifications) do
+            if NotifOuter then
+                NotifOuter.Parent = NewParent
+                local Inner = NotifOuter:FindFirstChild("NotifInner")
+                if not Inner then continue end
+
+                local Label = Inner:FindFirstChild("NotifLabel")
+                if Label then
+                    Label.TextXAlignment = isLeft and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
+                    Label.AnchorPoint = isLeft and Vector2.new(0, 0) or Vector2.new(1, 0)
+                end
+
+                local Icon = Inner:FindFirstChild("IconLabel")
+                if Icon then
+                    Icon.Position = isLeft and UDim2.new(0, 6, 0.5, 0) or UDim2.new(1, -20, 0.5, 0)
+                end
+
+                local SideBar = NotifOuter:FindFirstChild("SideColor")
+                if SideBar then
+                    SideBar.AnchorPoint = isLeft and Vector2.new(0, 0) or Vector2.new(1, 0)
+                    SideBar.Position = isLeft and UDim2.new(0, -1, 0, -1) or UDim2.new(1, -1, 0, -1)
+                end
+            end
+        end
     end
 
     function Library:Notify(...)
@@ -6334,6 +6370,8 @@ do
             Parent = Side == "left" and Library.LeftNotificationArea or Library.RightNotificationArea;
         })
 
+        table.insert(Library.Notifications, NotifyOuter)
+
         local NotifyInner = Library:Create("Frame", {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
@@ -6341,6 +6379,7 @@ do
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 11001;
             Parent = NotifyOuter;
+            Name = "NotifInner";
         })
 
         Library:AddToRegistry(NotifyInner, {
@@ -6355,6 +6394,7 @@ do
             Size = UDim2.new(1, -2, 1, -2);
             ZIndex = 11002;
             Parent = NotifyInner;
+            Name = "InnerFrame";
         })
 
         local Gradient = Library:Create("UIGradient", {
@@ -6403,6 +6443,7 @@ do
                     ImageRectSize = ParsedIcon.ImageRectSize,
                     ZIndex = 11004,
                     Parent = InnerFrame,
+                    Name = "IconLabel";
                 })
                 
                 if not Data.IconColor then
@@ -6427,6 +6468,7 @@ do
             ZIndex = 11003;
             RichText = true;
             Parent = InnerFrame;
+            Name = "NotifLabel";    
         })
 
         local SideColor = Library:Create("Frame", {
@@ -6437,6 +6479,7 @@ do
             Size = UDim2.new(0, 3, 1, 2);
             ZIndex = 11004;
             Parent = NotifyOuter;
+            Name = "SideColor";
         })
 
         Library:AddToRegistry(SideColor, {
@@ -6482,6 +6525,12 @@ do
             pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, 0, 0, YSize), "Out", "Quad", 0.4, true)
             task.wait(0.4)
             NotifyOuter:Destroy()
+            for i, v in pairs(Library.Notifications) do
+                if v == NotifyOuter then
+                    table.remove(Library.Notifications, i)
+                    break
+                end
+            end
         end
 
         Data:Resize()
